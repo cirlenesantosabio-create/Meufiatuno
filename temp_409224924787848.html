@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Meu Fiat Uno CHT 3D - Motor Completo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #1e293b; font-family: sans-serif; }
+        #canvas-container { width: 100%; height: 100%; position: absolute; top: 0; left: 0; z-index: 1; }
+        #crosshair { position: absolute; top: 50%; left: 52%; width: 8px; height: 8px; background: rgba(255, 255, 255, 0.7); border: 1px solid rgba(0, 0, 0, 0.5); border-radius: 50%; transform: translate(-50%, -50%); z-index: 5; pointer-events: none; display: none; }
+        
+        #lobby-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #0f172a, #1e293b); z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #fff; gap: 15px; }
+        #lobby-title { font-size: 32px; font-weight: bold; color: #f59e0b; text-shadow: 0 4px 15px rgba(0,0,0,0.5); text-align: center; }
+        #lobby-subtitle { font-size: 16px; color: #cbd5e1; margin-bottom: 15px; text-align: center; padding: 0 20px; }
+        .lobby-btn { padding: 14px 35px; background: #16a34a; color: white; font-size: 16px; font-weight: bold; border: none; border-radius: 30px; cursor: pointer; box-shadow: 0 6px 20px rgba(0,0,0,0.6); width: 220px; text-align: center; }
+        #btn-load-game { background: #0284c7; }
+        #btn-config-lobby { background: #475569; }
+
+        #pause-menu { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); z-index: 150; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 15px; color: #fff; }
+        .pause-btn { padding: 14px 35px; background: #0284c7; color: white; font-size: 16px; font-weight: bold; border: none; border-radius: 30px; cursor: pointer; box-shadow: 0 6px 20px rgba(0,0,0,0.6); width: 240px; text-align: center; }
+        
+        #hud { position: absolute; top: 15px; left: 15px; z-index: 10; pointer-events: none; display: none; }
+        .hud-card { background: rgba(15, 23, 42, 0.9); padding: 12px 18px; border-radius: 12px; color: #fff; border: 1px solid rgba(255,255,255,0.15); width: 230px; }
+        .hud-title { font-size: 14px; font-weight: bold; color: #f59e0b; margin-bottom: 6px; }
+        .hud-stat { font-size: 12px; color: #cbd5e1; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center; }
+        .bar-container { width: 100px; height: 8px; background: #334155; border-radius: 4px; overflow: hidden; border: 1px solid rgba(255,255,255,0.2); }
+        .bar-fill { height: 100%; width: 100%; transition: width 0.3s; }
+        #fill-hunger { background: #22c55e; }
+        #fill-thirst { background: #0ea5e9; }
+        #fill-energy { background: #eab308; }
+        #fill-fuel { background: #f59e0b; }
+        #msg-box { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); color: #38bdf8; padding: 10px 20px; border-radius: 20px; font-size: 14px; font-weight: bold; border: 1px solid #0284c7; z-index: 10; pointer-events: none; display: none; text-align: center; max-width: 90%; }
+        #shop-menu { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(15, 23, 42, 0.95); padding: 20px; border-radius: 15px; border: 2px solid #0284c7; z-index: 50; display: none; flex-direction: column; gap: 8px; width: 320px; max-height: 80vh; overflow-y: auto; text-align: center; color: #fff; }
+        .shop-btn { padding: 8px; background: #0284c7; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 11px; cursor: pointer; }
+        
+        #food-menu { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(15, 23, 42, 0.95); padding: 20px; border-radius: 15px; border: 2px solid #38bdf8; z-index: 50; display: none; flex-direction: column; gap: 10px; width: 280px; text-align: center; color: #fff; }
+        .food-btn { padding: 10px; background: #0284c7; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+
+        #gas-menu { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(15, 23, 42, 0.95); padding: 20px; border-radius: 15px; border: 2px solid #f59e0b; z-index: 50; display: none; flex-direction: column; gap: 10px; width: 280px; text-align: center; color: #fff; }
+        .gas-btn { padding: 10px; background: #f59e0b; color: #0f172a; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        
+        #gps-modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 420px; height: 420px; background: #0f172a; border: 4px solid #38bdf8; border-radius: 15px; z-index: 100; display: none; flex-direction: column; box-shadow: 0 10px 30px rgba(0,0,0,0.8); overflow: hidden; }
+        #gps-header { background: #0284c7; color: #fff; padding: 10px; font-weight: bold; text-align: center; font-size: 15px; display: flex; justify-content: space-between; align-items: center; }
+        #gps-canvas-container { width: 100%; flex: 1; position: relative; background: #1e293b; overflow: hidden; }
+        
+        .gps-dot { position: absolute; width: 36px; height: 36px; border-radius: 50%; transform: translate(-50%, -50%); border: 2px solid #fff; z-index: 3; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; }
+        #gps-player { background: #ef4444; width: 42px; height: 42px; }
+        #gps-car { background: #eab308; border-radius: 8px; width: 46px; height: 26px; }
+        
+        .gps-label { position: absolute; background: rgba(15, 23, 42, 0.9); font-size: 9px; font-weight: bold; color: #fff; transform: translate(-50%, -50%); padding: 2px 6px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); white-space: nowrap; pointer-events: none; z-index: 4; }
+        #lbl-warehouse { top: 12%; left: 50%; }
+        #lbl-home { top: 48%; left: 45%; }
+        #lbl-market { top: 75%; left: 60%; }
+        #lbl-shop { top: 90%; left: 50%; }
+        #lbl-gas { top: 25%; left: 20%; }
+
+        #btn-gps { top: 15px; right: 15px; background: #0284c7; }
+        #btn-cam { top: 50px; background: #2563eb; }
+        #btn-interact { top: 85px; background: #16a34a; }
+        #btn-hood { top: 120px; background: #854d0e; }
+        #btn-toolbox-car { top: 155px; background: #d97706; display: none; }
+        #btn-extend { top: 190px; background: #d97706; }
+        #btn-drop { top: 225px; background: #dc2626; }
+        #btn-crouch { top: 260px; background: #0284c7; }
+        #btn-enter { top: 295px; background: #ea580c; }
+        #btn-ignition { top: 330px; background: #16a34a; display: none; }
+        #btn-gearup { top: 365px; background: #0284c7; display: none; }
+        #btn-geardown { top: 400px; background: #475569; display: none; }
+        #btn-options { top: 15px; right: 85px; background: #334155; z-index: 20; }
+        
+        .btn-action { position: absolute; right: 15px; padding: 5px 10px; border-radius: 20px; font-weight: bold; font-size: 10px; color: white; border: none; z-index: 10; cursor: pointer; box-shadow: 0 3px 10px rgba(0,0,0,0.4); text-align: center; }
+        
+        #joy-zone { position: absolute; bottom: 30px; left: 30px; width: 130px; height: 130px; background: rgba(255, 255, 255, 0.15); border-radius: 50%; border: 2px solid rgba(255, 255, 255, 0.3); z-index: 10; display: none; }
+        #joy-knob { position: absolute; top: 40px; left: 40px; width: 50px; height: 50px; background: #38bdf8; border-radius: 50%; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body>
+    <div id="crosshair"></div>
+    <div id="lobby-screen">
+        <div id="lobby-title">🚗 MEU FIAT UNO CHT 3D</div>
+        <div id="lobby-subtitle">Monte o motor, abra o capô, cuide do combustível e dirija!</div>
+        <button id="btn-play" class="lobby-btn">JOGAR NOVO JOGO</button>
+        <button id="btn-load-game" class="lobby-btn">CARREGAR JOGO SALVO</button>
+        <button id="btn-config-lobby" class="lobby-btn" onclick="saveGame()">💾 Salvar Jogo Atual</button>
+    </div>
+    <div id="pause-menu">
+        <h2>⚙️ MENU DE OPÇÕES</h2>
+        <button class="pause-btn" onclick="toggleOptions()">Continuar Jogo</button>
+        <button class="pause-btn" onclick="saveGame(); alert('Jogo salvo com sucesso!');">Salvar Jogo</button>
+        <button class="pause-btn" style="background:#dc2626;" onclick="returnToLobby()">Voltar para o Lobby</button>
+    </div>
+    <div id="canvas-container"></div>
+    <div id="hud"><div class="hud-card">
+        <div class="hud-title">🚗 FIAT UNO CHT 3D</div>
+        <div class="hud-stat" id="st-time">Horário: 08:00</div>
+        <div class="hud-stat" id="st-status">Status: <b style="color:#ef4444;">Desmontado</b></div>
+        <div class="hud-stat" id="st-fps">FPS: 60</div>
+        <div class="hud-stat" id="st-money">Dinheiro: $150</div>
+        <div class="hud-stat"><span>Fome:</span><div class="bar-container"><div id="fill-hunger" class="bar-fill"></div></div></div>
+        <div class="hud-stat"><span>Sede:</span><div class="bar-container"><div id="fill-thirst" class="bar-fill"></div></div></div>
+        <div class="hud-stat"><span>Energia:</span><div class="bar-container"><div id="fill-energy" class="bar-fill"></div></div></div>
+        <div class="hud-stat"><span>Gasolina:</span><div class="bar-container"><div id="fill-fuel" class="bar-fill"></div></div></div>
+        <div class="hud-stat" id="st-gear">Marcha: N</div>
+        <div class="hud-stat" id="st-cargo">Carga: Nenhum</div>
+        <div class="hud-stat" id="st-speed">Velocidade: 0 km/h</div>
+    </div></div>
+    <div id="gps-modal">
+        <div id="gps-header">
+            <span>🛰️ GPS Fiat Uno</span>
+            <button onclick="toggleGps()" style="background:#dc2626; color:#fff; border:none; padding:4px 10px; border-radius:5px; font-weight:bold; cursor:pointer;">X</button>
+        </div>
+        <div id="gps-canvas-container">
+            <div id="gps-player" class="gps-dot">👤</div>
+            <div id="gps-car" class="gps-dot">🚗</div>
+            <div id="lbl-warehouse" class="gps-label">📦 Galpão</div>
+            <div id="lbl-home" class="gps-label">🏠 Casa</div>
+            <div id="lbl-market" class="gps-label">🛒 Supermercado</div>
+            <div id="lbl-shop" class="gps-label">🛠️ Auto Peças</div>
+            <div id="lbl-gas" class="gps-label">⛽ Posto</div>
+        </div>
+    </div>
+    <div id="shop-menu">
+        <h3>🛠️ Auto Peças (Peças do Motor)</h3>
+        <div id="shop-parts-list" style="display:flex; flex-direction:column; gap:6px; margin: 10px 0;"></div>
+        <button class="shop-btn" style="background:#dc2626;" onclick="closeShopMenu()">Fechar</button>
+    </div>
+    <div id="food-menu">
+        <h3>🛒 Supermercado (Alimentos/Bebidas)</h3>
+        <button class="food-btn" onclick="buyFood('Carne Enlatada', 20)">Carne Enlatada (Fome $20)</button>
+        <button class="food-btn" onclick="buyFood('Cachorro-Quente', 15)">Cachorro-Quente (Fome $15)</button>
+        <button class="food-btn" onclick="buyFood('Refrigerante', 10)">Refrigerante (Sede $10)</button>
+        <button class="food-btn" onclick="buyFood('Água', 5)">Água (Sede $5)</button>
+        <button class="food-btn" style="background:#dc2626;" onclick="closeFoodMenu()">Fechar</button>
+    </div>
+    <div id="gas-menu">
+        <h3>⛽ Posto de Gasolina ($4 / Litro)</h3>
+        <p id="gas-tank-info" style="font-size:12px; color:#cbd5e1; margin-bottom:5px;">Tanque: 0L / 30L</p>
+        <div style="display:flex; align-items:center; justify-content:center; gap:15px; margin:10px 0;">
+            <button class="gas-btn" style="width:40px; font-size:18px;" onclick="changeGasLiters(-1)">◄</button>
+            <span id="gas-liters-select" style="font-size:18px; font-weight:bold; color:#f59e0b;">0 L</span>
+            <button class="gas-btn" style="width:40px; font-size:18px;" onclick="changeGasLiters(1)">►</button>
+        </div>
+        <p id="gas-cost-info" style="font-size:13px; font-weight:bold; color:#22c55e; margin-bottom:10px;">Total: $0</p>
+        <button class="gas-btn" onclick="confirmBuyGas()">Confirmar Abastecimento</button>
+        <button class="gas-btn" style="background:#dc2626; color:#fff; margin-top:5px;" onclick="closeGasMenu()">Fechar</button>
+    </div>
+    <div id="msg-box">Pegue as peças na bancada e na frente do carro para montar!</div>
+    <button id="btn-gps" class="btn-action">🛰️ GPS</button>
+    <button id="btn-cam" class="btn-action">🎥 Câmera: 2ª P</button>
+    <button id="btn-interact" class="btn-action">✋ Interagir</button>
+    <button id="btn-hood" class="btn-action">🧢 Abrir Capô</button>
+    <button id="btn-toolbox-car" class="btn-action">🧰 Guardar Maleta</button>
+    <button id="btn-extend" class="btn-action">📏 Ampliar Item</button>
+    <button id="btn-drop" class="btn-action">📦 Dropar Item</button>
+    <button id="btn-crouch" class="btn-action">🧎 Agachar</button>
+    <button id="btn-enter" class="btn-action">🚗 Entrar no Uno</button>
+    <button id="btn-ignition" class="btn-action">🔑 Ligar Motor</button>
+    <button id="btn-gearup" class="btn-action">⬆️ Marcha Acima</button>
+    <button id="btn-geardown" class="btn-action">⬇️ Marcha Abaixo</button>
+    <button id="btn-options" class="btn-action">⚙️ Opções</button>
+    <div id="joy-zone"><div id="joy-knob"></div></div>
+    <script>
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x7dd3fc);
+        scene.fog = new THREE.FogExp2(0x7dd3fc, 0.001);
+        const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 4000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
+        container.appendChild(renderer.domElement);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        scene.add(ambientLight);
+        const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+        sun.position.set(100, 200, 100);
+        scene.add(sun);
+        const colliders = [];
+        const ground = new THREE.Mesh(new THREE.PlaneGeometry(5000, 5000), new THREE.MeshBasicMaterial({ color: 0x15803d }));
+        ground.rotation.x = -Math.PI / 2;
+        scene.add(ground);
+        function createRoad(x, z, w, d) {
+            const road = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshBasicMaterial({ color: 0x334155 }));
+            road.rotation.x = -Math.PI / 2;
+            road.position.set(x, 0.02, z);
+            scene.add(road);
+        }
+        createRoad(0, 0, 16, 4000);
+        createRoad(0, -1000, 4000, 16);
+        createRoad(-400, 500, 14, 2500);
+        createRoad(400, -300, 14, 2500);
+        createRoad(-600, 400, 14, 1200);
+        createRoad(200, 800, 2000, 14);
+        createRoad(-200, -600, 14, 1800);
+        createRoad(0, 1200, 3000, 14);
+        function createMountain(x, z, r, h, color) {
+            const mountain = new THREE.Mesh(new THREE.ConeGeometry(r, h, 7), new THREE.MeshBasicMaterial({ color }));
+            mountain.position.set(x, h/2 - 2, z);
+            scene.add(mountain);
+            colliders.push(new THREE.Box3().setFromObject(mountain));
+        }
+        createMountain(-800, -800, 250, 180, 0x334155);
+        createMountain(800, -1200, 300, 220, 0x334155);
+        createMountain(-800, 1000, 250, 180, 0x475569);
+        createMountain(800, 800, 280, 200, 0x64748b);
+        createMountain(0, -1800, 350, 250, 0x334155);
+        createMountain(0, 1800, 350, 250, 0x475569);
+        function buildBuilding(x, z, w, h, d, color) {
+            const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ color }));
+            mesh.position.set(x, h/2, z);
+            scene.add(mesh);
+            colliders.push(new THREE.Box3().setFromObject(mesh));
+            return mesh;
+        }
+        buildBuilding(-29.5, 14, 0.5, 4, 12, 0x94a3b8);
+        buildBuilding(-20.5, 14, 0.5, 4, 12, 0x94a3b8);
+        buildBuilding(-25, 20, 9.5, 4, 0.5, 0x94a3b8);
+        const garageRoof = new THREE.Mesh(new THREE.BoxGeometry(9.5, 0.5, 12), new THREE.MeshBasicMaterial({ color: 0x64748b }));
+        garageRoof.position.set(-25, 4.25, 14);
+        scene.add(garageRoof);
+        buildBuilding(-34.5, 19, 8, 4, 0.3, 0xf8fafc);
+        buildBuilding(-38.3, 14, 0.3, 4, 10, 0xf8fafc);
+        buildBuilding(-30.7, 14, 0.3, 4, 10, 0xf8fafc);
+        buildBuilding(-37.0, 9.1, 3.0, 4, 0.3, 0xf8fafc);
+        buildBuilding(-32.0, 9.1, 3.0, 4, 0.3, 0xf8fafc);
+        const houseRoof = new THREE.Mesh(new THREE.ConeGeometry(6, 2.5, 4), new THREE.MeshBasicMaterial({ color: 0x991b1b }));
+        houseRoof.position.set(-34.5, 5.25, 14);
+        houseRoof.rotation.y = Math.PI / 4;
+        scene.add(houseRoof);
+        const bed = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.6, 2.2), new THREE.MeshBasicMaterial({ color: 0x2563eb }));
+        bed.position.set(-37, 0.3, 17);
+        scene.add(bed);
+        const fridgeBody = new THREE.Mesh(new THREE.BoxGeometry(1.0, 2.2, 1.0), new THREE.MeshBasicMaterial({ color: 0x64748b }));
+        fridgeBody.position.set(-32, 1.1, 17);
+        scene.add(fridgeBody);
+        const fridgeDoor = new THREE.Mesh(new THREE.BoxGeometry(0.95, 2.1, 0.1), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+        fridgeDoor.position.set(-32, 1.1, 17.5);
+        scene.add(fridgeDoor);
+        const toolboxMesh = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.25, 0.3), new THREE.MeshBasicMaterial({ color: 0xd97706 }));
+        toolboxMesh.position.set(-28.5, 0.9, 14);
+        scene.add(toolboxMesh);
+        const enginePartsList = [
+            {name: 'Radiador', color: 0x38bdf8, price: 40, pos: [-28.8, 0.9, 14.8]},
+            {name: 'Bateria', color: 0x1e293b, price: 35, pos: [-28.8, 0.9, 13.2]},
+            {name: 'Bloco do Motor', color: 0x64748b, price: 120, pos: [-28.2, 0.9, 14.8]},
+            {name: 'Tampa de Válvulas', color: 0xef4444, price: 50, pos: [-28.2, 0.9, 13.2]},
+            {name: 'Velas', color: 0xffffff, price: 20, pos: [-28.5, 0.9, 14.4]},
+            {name: 'Cabos de Vela', color: 0xf59e0b, price: 25, pos: [-28.5, 0.9, 13.6]},
+            {name: 'Alternador', color: 0xa855f7, price: 60, pos: [-28.2, 0.9, 14.0]},
+            {name: 'Distribuidor', color: 0x34d399, price: 45, pos: [-26.0, 0.15, 16.8]},
+            {name: "Bomba D'água", color: 0x0284c7, price: 45, pos: [-25.2, 0.15, 16.8]},
+            {name: 'Coletor de Exaustão', color: 0x475569, price: 55, pos: [-24.4, 0.15, 16.8]},
+            {name: 'Fluido de Freio', color: 0xfacc15, price: 15, pos: [-23.6, 0.15, 16.8]},
+            {name: 'Coolant', color: 0x22c55e, price: 15, pos: [-26.0, 0.15, 17.6]},
+            {name: 'Mangueira Radiador', color: 0x0f172a, price: 20, pos: [-25.2, 0.15, 17.6]},
+            {name: 'Correia', color: 0x111827, price: 30, pos: [-24.4, 0.15, 17.6]},
+            {name: 'Tubo de Ramificação', color: 0x94a3b8, price: 35, pos: [-23.6, 0.15, 17.6]}
+        ];
+        const partMeshes = {};
+        enginePartsList.forEach(p => {
+            const m = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.18, 0.22), new THREE.MeshBasicMaterial({ color: p.color }));
+            m.position.set(p.pos[0], p.pos[1], p.pos[2]);
+            scene.add(m);
+            partMeshes[p.name] = m;
+        });
+        buildBuilding(20, -1400, 0.5, 6, 16, 0x0284c7);
+        buildBuilding(30, -1400, 0.5, 6, 16, 0x0284c7);
+        buildBuilding(25, -1408, 9.5, 6, 0.5, 0x0284c7);
+        buildBuilding(-36, 1400, 0.5, 7, 18, 0x475569);
+        buildBuilding(-24, 1400, 0.5, 7, 18, 0x475569);
+        buildBuilding(-30, 1409, 11.5, 7, 0.5, 0x475569);
+        const warehouseRoof = new THREE.Mesh(new THREE.BoxGeometry(12.5, 0.5, 18), new THREE.MeshBasicMaterial({ color: 0x334155 }));
+        warehouseRoof.position.set(-30, 7.25, 1400);
+        scene.add(warehouseRoof);
+        const whShelf1 = new THREE.Mesh(new THREE.BoxGeometry(1.5, 3, 4), new THREE.MeshBasicMaterial({ color: 0x334155 }));
+        whShelf1.position.set(-35, 1.5, 1398);
+        scene.add(whShelf1);
+        const whShelf2 = new THREE.Mesh(new THREE.BoxGeometry(1.5, 3, 4), new THREE.MeshBasicMaterial({ color: 0x334155 }));
+        whShelf2.position.set(-35, 1.5, 1404);
+        scene.add(whShelf2);
+        buildBuilding(388.5, -600, 0.5, 5.0, 12, 0x16a34a);
+        buildBuilding(411.5, -600, 0.5, 5.0, 12, 0x16a34a);
+        buildBuilding(400, -594, 23.5, 5.0, 0.5, 0x16a34a);
+        buildBuilding(389.0, -606, 4.0, 5.0, 0.5, 0x16a34a);  
+        buildBuilding(400.0, -606, 8.0, 5.0, 0.5, 0x16a34a);  
+        buildBuilding(411.0, -606, 4.0, 5.0, 0.5, 0x16a34a);  
+        const marketRoof = new THREE.Mesh(new THREE.BoxGeometry(23.5, 0.5, 12), new THREE.MeshBasicMaterial({ color: 0x14532d }));
+        marketRoof.position.set(400, 5.25, -600);
+        scene.add(marketRoof);
+        buildBuilding(-588.5, 400, 0.5, 5.0, 12, 0xf59e0b);
+        buildBuilding(-611.5, 400, 0.5, 5.0, 12, 0xf59e0b);
+        buildBuilding(-600, 394, 23.5, 5.0, 0.5, 0xf59e0b);
+        const gasRoof = new THREE.Mesh(new THREE.BoxGeometry(23.5, 0.5, 12), new THREE.MeshBasicMaterial({ color: 0xd97706 }));
+        gasRoof.position.set(-600, 5.25, 400);
+        scene.add(gasRoof);
+        const gasPump = new THREE.Mesh(new THREE.BoxGeometry(1, 1.5, 1), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
+        gasPump.position.set(-600, 0.75, 400);
+        scene.add(gasPump);
+        function createTextSign(text, colorHex, w = 4) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = colorHex;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 45px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(text, canvas.width / 2, canvas.height / 2);
+            const texture = new THREE.CanvasTexture(canvas);
+            const mat = new THREE.MeshBasicMaterial({ map: texture });
+            return new THREE.Mesh(new THREE.BoxGeometry(w, 0.9, 0.1), mat);
+        }
+        const signMarket = createTextSign("SUPERMERCADO", "#15803d", 7);
+        signMarket.position.set(400, 6.2, -606.1);
+        scene.add(signMarket);
+        const signDelivery = createTextSign("ENTREGAS", "#f59e0b", 4.5);
+        signDelivery.position.set(394, 5.5, -606.1);
+        scene.add(signDelivery);
+        const signFood = createTextSign("COMIDA", "#f59e0b", 4.5);
+        signFood.position.set(406, 5.5, -606.1);
+        scene.add(signFood);
+        const signShop = createTextSign("AUTO PEÇAS", "#0284c7", 6);
+        signShop.position.set(25, 4.5, -1391.9);
+        scene.add(signShop);
+        const signGas = createTextSign("POSTO DE GASOLINA", "#f59e0b", 7);
+        signGas.position.set(-600, 6.2, 394.1);
+        scene.add(signGas);
+        const deliveryShelf = new THREE.Mesh(new THREE.BoxGeometry(3, 1.5, 1), new THREE.MeshBasicMaterial({ color: 0x854d0e }));
+        deliveryShelf.position.set(394, 0.75, -600);
+        scene.add(deliveryShelf);
+        const foodShelf = new THREE.Mesh(new THREE.BoxGeometry(3, 1.5, 1), new THREE.MeshBasicMaterial({ color: 0xb45309 }));
+        foodShelf.position.set(406, 0.75, -600);
+        scene.add(foodShelf);
+        const shopCounter = new THREE.Mesh(new THREE.BoxGeometry(3, 1.2, 1), new THREE.MeshBasicMaterial({ color: 0x0369a1 }));
+        shopCounter.position.set(25, 0.6, -1395);
+        scene.add(shopCounter);
+        const shelfBox = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1, 1.2), new THREE.MeshBasicMaterial({ color: 0xb45309 }));
+        shelfBox.position.set(394, 1.6, -600);
+        shelfBox.visible = false;
+        scene.add(shelfBox);
+        const pit = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.05, 5), new THREE.MeshBasicMaterial({ color: 0x0f172a }));
+        pit.position.set(-25, 0.03, 14);
+        scene.add(pit);
+        function createGate(x, y, z, w, h, d, color) {
+            const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshBasicMaterial({ color }));
+            mesh.position.set(x, y, z);
+            scene.add(mesh);
+            const box = new THREE.Box3().setFromObject(mesh);
+            colliders.push(box);
+            return { mesh, box, open: false };
+        }
+        const gates = {
+            garageGate: createGate(-25, 2, 8, 8.5, 3.8, 0.3, 0x78350f),
+            home: createGate(-34.5, 1.4, 9.1, 2.0, 2.6, 0.3, 0x78350f),
+            shop: createGate(25, 3, -1392, 9.5, 6, 0.2, 0x334155),
+            warehouse: createGate(-30, 3.5, 1391, 11.5, 7, 0.2, 0x1e293b),
+            marketGate: createGate(394, 2.5, -606, 8.0, 5.0, 0.3, 0x111827),
+            marketDoor: createGate(406, 2.5, -606, 8.0, 5.0, 0.3, 0x38bdf8),
+            gasGate: createGate(-600, 2.5, 394, 8.0, 5.0, 0.3, 0xf59e0b)
+        };
+        const bench = new THREE.Mesh(new THREE.BoxGeometry(1, 0.8, 3), new THREE.MeshBasicMaterial({ color: 0x451a03 }));
+        bench.position.set(-28.5, 0.4, 14);
+        scene.add(bench);
+        const cargoBox = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1, 1.2), new THREE.MeshBasicMaterial({ color: 0xb45309 }));
+        cargoBox.position.set(-30, 0.5, 1402);
+        scene.add(cargoBox);
+        const droppedBox = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1, 1.2), new THREE.MeshBasicMaterial({ color: 0xb45309 }));
+        droppedBox.position.set(0, -10, 0);
+        droppedBox.visible = false;
+        scene.add(droppedBox);
+        const droppedFood = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), new THREE.MeshBasicMaterial({ color: 0xfacc15 }));
+        droppedFood.position.set(0, -10, 0);
+        droppedFood.visible = false;
+        scene.add(droppedFood);
+        const playerCargo = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.8, 1.0), new THREE.MeshBasicMaterial({ color: 0xb45309 }));
+        playerCargo.position.set(0, 0.9, 0.4);
+        playerCargo.visible = false;
+        const playerFood = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), new THREE.MeshBasicMaterial({ color: 0xfacc15 }));
+        playerFood.position.set(0, 0.9, 0.4);
+        playerFood.visible = false;
+        const carCargo = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.8, 1.0), new THREE.MeshBasicMaterial({ color: 0xb45309 }));
+        carCargo.position.set(0, 1.15, -1.2);
+        carCargo.visible = false;
+        const carFood = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), new THREE.MeshBasicMaterial({ color: 0xfacc15 }));
+        carFood.position.set(0, 1.15, -1.2);
+        carFood.visible = false;
+        
+        const carToolbox = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.25, 0.3), new THREE.MeshBasicMaterial({ color: 0xd97706 }));
+        carToolbox.position.set(0.2, 1.0, 0.1);
+        carToolbox.visible = false;
+        
+        const car = new THREE.Group();
+        car.position.set(-25, 0, 14);
+        scene.add(car);
+        const carBody = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.75, 3.8), new THREE.MeshBasicMaterial({ color: 0xdc2626 }));
+        carBody.position.y = 0.6;
+        car.add(carBody);
+        const carCabin = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.7, 2.1), new THREE.MeshBasicMaterial({ color: 0xb91c1c }));
+        carCabin.position.set(0, 1.3, -0.1);
+        car.add(carCabin);
+        const hood = new THREE.Mesh(new THREE.BoxGeometry(1.58, 0.1, 1.3), new THREE.MeshBasicMaterial({ color: 0xdc2626 }));
+        hood.position.set(0, 0.98, 1.15);
+        car.add(hood);
+        const windshield = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.6, 0.05), new THREE.MeshBasicMaterial({ color: 0x0f172a }));
+        windshield.position.set(0, 1.3, 0.96);
+        windshield.rotation.x = 0.35;
+        car.add(windshield);
+        const rearWindow = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.6, 0.05), new THREE.MeshBasicMaterial({ color: 0x0f172a }));
+        rearWindow.position.set(0, 1.3, -1.16);
+        rearWindow.rotation.x = -0.3;
+        car.add(rearWindow);
+        const bumperFront = new THREE.Mesh(new THREE.BoxGeometry(1.88, 0.22, 0.2), new THREE.MeshBasicMaterial({ color: 0x1e293b }));
+        bumperFront.position.set(0, 0.32, 1.91);
+        car.add(bumperFront);
+        const bumperRear = new THREE.Mesh(new THREE.BoxGeometry(1.88, 0.22, 0.2), new THREE.MeshBasicMaterial({ color: 0x1e293b }));
+        bumperRear.position.set(0, 0.32, -1.91);
+        car.add(bumperRear);
+        const headlightL = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.2, 0.05), new THREE.MeshBasicMaterial({ color: 0xfef08a }));
+        headlightL.position.set(0.62, 0.48, 1.92);
+        car.add(headlightL);
+        const headlightR = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.2, 0.05), new THREE.MeshBasicMaterial({ color: 0xfef08a }));
+        headlightR.position.set(-0.62, 0.48, 1.92);
+        car.add(headlightR);
+        const wheelGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.28, 16);
+        wheelGeo.rotateZ(Math.PI / 2);
+        const wheelMat = new THREE.MeshBasicMaterial({ color: 0x0f172a });
+        [{x: 1.0, z: 1.2}, {x: -1.0, z: 1.2}, {x: 1.0, z: -1.2}, {x: -1.0, z: -1.2}].forEach(pos => {
+            const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+            wheel.position.set(pos.x, 0.35, pos.z);
+            car.add(wheel);
+        });
+        car.add(carCargo);
+        car.add(carFood);
+        car.add(carToolbox);
+        const installedEnginePartsGroup = new THREE.Group();
+        installedEnginePartsGroup.position.set(0, 1.05, 1.15);
+        installedEnginePartsGroup.visible = false;
+        car.add(installedEnginePartsGroup);
+        const installedPartMeshes = {};
+        const engineSlotsMap = {
+            'Radiador': [0, 0.05, 0.42],
+            'Bateria': [-0.38, 0.05, -0.25],
+            'Bloco do Motor': [0, -0.02, 0],
+            'Tampa de Válvulas': [0, 0.18, 0],
+            'Velas': [0.12, 0.22, 0.08],
+            'Cabos de Vela': [-0.12, 0.22, 0.08],
+            'Alternador': [0.35, 0.05, 0.15],
+            'Distribuidor': [-0.3, 0.12, -0.1],
+            "Bomba D'água": [0.3, 0.02, 0.3],
+            'Coletor de Exaustão': [-0.35, 0.05, 0.15],
+            'Fluido de Freio': [-0.38, 0.08, -0.42],
+            'Coolant': [0.38, 0.08, -0.42],
+            'Mangueira Radiador': [0.18, 0.08, 0.35],
+            'Correia': [0.32, 0.05, 0.05],
+            'Tubo de Ramificação': [0, 0.12, -0.28]
+        };
+        enginePartsList.forEach(p => {
+            let pos = engineSlotsMap[p.name] || [0, 0, 0];
+            const m = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.1, 0.14), new THREE.MeshBasicMaterial({ color: p.color }));
+            m.position.set(pos[0], pos[1], pos[2]);
+            installedEnginePartsGroup.add(m);
+            installedPartMeshes[p.name] = m;
+        });
+        const player = new THREE.Group();
+        player.position.set(-25, 0, 4);
+        scene.add(player);
+        const playerBody = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 1.6), new THREE.MeshBasicMaterial({ color: 0x0284c7 }));
+        playerBody.position.y = 0.8;
+        player.add(playerBody);
+        player.add(playerCargo);
+        player.add(playerFood);
+        const state = { 
+            gameStarted: false, isPaused: false, yaw: 0, pitch: 0, carYaw: 0, carPitch: 0, extCamYaw: 0, extCamPitch: 0, inCar: false, thirdPerson: true, isCrouched: false, carAssembled: false, carFixed: false, hoodOpen: false,
+            hasCargo: false, hasCarCargo: false, hasFood: false, foodType: '', fridgeHasFood: false, fridgeFoodType: '', money: 150, hunger: 100, thirst: 100, energy: 100, fuel: 100, gear: 0, engineOn: false, timeMinutes: 480, carSpeed: 0,
+            hasToolbox: false, hasCarToolbox: false,
+            partsCollected: { 'Radiador': false, 'Bateria': false, 'Bloco do Motor': false, 'Tampa de Válvulas': false, 'Velas': false, 'Cabos de Vela': false, 'Alternador': false, 'Distribuidor': false, "Bomba D'água": false, 'Coletor de Exaustão': false, 'Fluido de Freio': false, 'Coolant': false, 'Mangueira Radiador': false, 'Correia': false, 'Tubo de Ramificação': false },
+            partsHealth: { 'Radiador': 100, 'Bateria': 100, 'Bloco do Motor': 100, 'Tampa de Válvulas': 100, 'Velas': 100, 'Cabos de Vela': 100, 'Alternador': 100, 'Distribuidor': 100, "Bomba D'água": 100, 'Coletor de Exaustão': 100, 'Fluido de Freio': 100, 'Coolant': 100, 'Mangueira Radiador': 100, 'Correia': 100, 'Tubo de Ramificação': 100 },
+            holdingPart: null
+        };
+        const holdingMesh = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.25, 0.3), new THREE.MeshBasicMaterial({ color: 0xf59e0b }));
+        holdingMesh.position.set(0, 0.9, 0.4);
+        holdingMesh.visible = false;
+        player.add(holdingMesh);
+        const playerToolbox = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.25, 0.3), new THREE.MeshBasicMaterial({ color: 0xd97706 }));
+        playerToolbox.position.set(0, 0.9, 0.4);
+        playerToolbox.visible = false;
+        player.add(playerToolbox);
+        function saveGame() {
+            const saveData = {
+                playerPos: { x: player.position.x, y: player.position.y, z: player.position.z },
+                carPos: { x: car.position.x, y: car.position.y, z: car.position.z },
+                carRot: car.rotation.y,
+                state: state
+            };
+            localStorage.setItem('fiatUnoSaveParts30D_V19', JSON.stringify(saveData));
+            alert("Jogo salvo com sucesso!");
+        }
+        function loadGame() {
+            const saved = localStorage.getItem('fiatUnoSaveParts30D_V19');
+            if(!saved) { alert("Nenhum save encontrado!"); return false; }
+            try {
+                const data = JSON.parse(saved);
+                player.position.set(data.playerPos.x, data.playerPos.y, data.playerPos.z);
+                car.position.set(data.carPos.x, data.carPos.y, data.carPos.z);
+                car.rotation.y = data.carRot;
+                Object.assign(state, data.state);
+                playerBody.visible = !state.inCar;
+                playerCargo.visible = (state.hasCargo && !state.inCar);
+                playerFood.visible = (state.hasFood && !state.inCar);
+                carCargo.visible = (state.hasCarCargo);
+                carToolbox.visible = (state.hasCarToolbox);
+                carFood.visible = (state.hasFood && state.inCar);
+                if(state.hasToolbox) {
+                    toolboxMesh.visible = false;
+                    playerToolbox.visible = true;
+                }
+                for(let partName in state.partsCollected) {
+                    if(state.partsCollected[partName] && partMeshes[partName]) {
+                        partMeshes[partName].position.set(0, -10, 0);
+                    }
+                }
+                if(state.carAssembled) {
+                    document.getElementById('st-status').innerHTML = state.carFixed ? 'Status: <b style="color:#22c55e;">Montado / Pronto</b>' : 'Status: <b style="color:#ef4444;">Motor Quebrado</b>';
+                    installedEnginePartsGroup.visible = state.hoodOpen;
+                }
+                document.getElementById('st-money').innerText = `Dinheiro: $${state.money}`;
+                document.getElementById('st-gear').innerText = `Marcha: ${state.gear === -1 ? 'R' : (state.gear === 0 ? 'N' : state.gear)}`;
+                document.getElementById('st-cargo').innerText = state.hasToolbox ? "Item: Maleta de Ferramentas" : (state.hasCarToolbox ? "Item: Maleta no Interior" : (state.hasCarCargo ? "Carga: Caixa na Caçamba" : (state.hasCargo ? "Carga: Caixa na Mão" : (state.holdingPart ? `Peça: ${state.holdingPart}` : "Carga: Nenhum"))));
+                return true;
+            } catch(e) {
+                alert("Erro ao carregar o save!");
+                return false;
+            }
+        }
+        function toggleOptions() {
+            AudioSys.init();
+            state.isPaused = !state.isPaused;
+            document.getElementById('pause-menu').style.display = state.isPaused ? 'flex' : 'none';
+        }
+        function returnToLobby() {
+            state.isPaused = false;
+            state.gameStarted = false;
+            document.getElementById('pause-menu').style.display = 'none';
+            document.getElementById('hud').style.display = 'none';
+            document.getElementById('msg-box').style.display = 'none';
+            document.getElementById('btn-gps').style.display = 'none';
+            document.getElementById('btn-cam').style.display = 'none';
+            document.getElementById('btn-interact').style.display = 'none';
+            document.getElementById('btn-hood').style.display = 'none';
+            document.getElementById('btn-toolbox-car').style.display = 'none';
+            document.getElementById('btn-extend').style.display = 'none';
+            document.getElementById('btn-drop').style.display = 'none';
+            document.getElementById('btn-crouch').style.display = 'none';
+            document.getElementById('btn-enter').style.display = 'none';
+            document.getElementById('btn-ignition').style.display = 'none';
+            document.getElementById('btn-gearup').style.display = 'none';
+            document.getElementById('btn-geardown').style.display = 'none';
+            document.getElementById('btn-options').style.display = 'none';
+            document.getElementById('crosshair').style.display = 'none';
+            document.getElementById('joy-zone').style.display = 'none';
+            document.getElementById('lobby-screen').style.display = 'flex';
+        }
+        const AudioSys = {
+            ctx: null, engineOsc: null, engineGain: null,
+            init() { 
+                if(!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    try {
+                        this.engineOsc = this.ctx.createOscillator();
+                        this.engineGain = this.ctx.createGain();
+                        this.engineOsc.type = 'sawtooth';
+                        this.engineOsc.frequency.setValueAtTime(60, this.ctx.currentTime);
+                        this.engineGain.gain.setValueAtTime(0.0, this.ctx.currentTime);
+                        this.engineOsc.connect(this.engineGain);
+                        this.engineGain.connect(this.ctx.destination);
+                        this.engineOsc.start();
+                    } catch(e){}
+                }
+            },
+            play(f, t, d) {
+                if(!this.ctx) return;
+                try {
+                    let o = this.ctx.createOscillator(), g = this.ctx.createGain();
+                    o.type = t; o.frequency.setValueAtTime(f, this.ctx.currentTime);
+                    g.gain.setValueAtTime(0.1, this.ctx.currentTime);
+                    g.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + d);
+                    o.connect(g); g.connect(this.ctx.destination);
+                    o.start(); o.stop(this.ctx.currentTime + d);
+                } catch(e){}
+            },
+            updateEngine(speed, inCar) {
+                if(!this.engineGain || !this.engineOsc) return;
+                if(inCar && state.carFixed && state.engineOn && state.fuel > 0 && !state.isPaused) {
+                    this.engineOsc.frequency.setTargetAtTime(50 + Math.abs(speed) * 20 + Math.abs(state.gear) * 15, this.ctx.currentTime, 0.1);
+                    this.engineGain.gain.setTargetAtTime(0.08 + Math.abs(speed) * 0.03, this.ctx.currentTime, 0.1);
+                } else {
+                    this.engineGain.gain.setTargetAtTime(0.0, this.ctx.currentTime, 0.1);
+                }
+            }
+        };
+        function toggleGps() {
+            AudioSys.init();
+            const gpsModal = document.getElementById('gps-modal');
+            gpsModal.style.display = (gpsModal.style.display === 'flex') ? 'none' : 'flex';
+        }
+        document.getElementById('btn-gps').addEventListener('click', toggleGps);
+        document.getElementById('btn-options').addEventListener('click', toggleOptions);
+
+        function openShopMenu() {
+            const listEl = document.getElementById('shop-parts-list');
+            listEl.innerHTML = '';
+            enginePartsList.forEach(p => {
+                const btn = document.createElement('button');
+                btn.className = 'shop-btn';
+                btn.innerText = `${p.name} - $${p.price} (${Math.round(state.partsHealth[p.name])}%)`;
+                btn.onclick = () => buyEnginePart(p.name, p.price, p.color);
+                listEl.appendChild(btn);
+            });
+            document.getElementById('shop-menu').style.display = 'flex';
+        }
+        function closeShopMenu() { document.getElementById('shop-menu').style.display = 'none'; }
+        function closeGasMenu() { document.getElementById('gas-menu').style.display = 'none'; }
+        
+        let selectedGasLiters = 0;
+        function openGasMenu() {
+            selectedGasLiters = 0;
+            updateGasUI();
+            document.getElementById('gas-menu').style.display = 'flex';
+        }
+        function updateGasUI() {
+            let currentLiters = Math.round((state.fuel / 100) * 30);
+            let maxCanFill = 30 - currentLiters;
+            if (selectedGasLiters > maxCanFill) selectedGasLiters = maxCanFill;
+            if (selectedGasLiters < 0) selectedGasLiters = 0;
+
+            document.getElementById('gas-tank-info').innerText = `Tanque atual: ${currentLiters}L / 30L (Máx p/ encher: ${maxCanFill}L)`;
+            document.getElementById('gas-liters-select').innerText = `${selectedGasLiters} L`;
+            document.getElementById('gas-cost-info').innerText = `Total: $${selectedGasLiters * 4}`;
+        }
+        function changeGasLiters(amount) {
+            let currentLiters = Math.round((state.fuel / 100) * 30);
+            let maxCanFill = 30 - currentLiters;
+            selectedGasLiters += amount;
+            if (selectedGasLiters > maxCanFill) selectedGasLiters = maxCanFill;
+            if (selectedGasLiters < 0) selectedGasLiters = 0;
+            updateGasUI();
+        }
+        function confirmBuyGas() {
+            let cost = selectedGasLiters * 4;
+            if (selectedGasLiters <= 0) {
+                msgBox.innerText = "Selecione uma quantidade maior que 0 L!";
+                return;
+            }
+            if (state.money >= cost) {
+                state.money -= cost;
+                let addedPercent = (selectedGasLiters / 30) * 100;
+                state.fuel = Math.min(100, state.fuel + addedPercent);
+                document.getElementById('st-money').innerText = `Dinheiro: $${state.money}`;
+                AudioSys.play(650, 'triangle', 0.2);
+                msgBox.innerText = `Abastecido ${selectedGasLiters}L no tanque! ($${cost})`;
+                closeGasMenu();
+            } else {
+                msgBox.innerText = "Dinheiro insuficiente para abastecer!";
+            }
+        }
+        function buyEnginePart(name, price, color) {
+            if(state.money >= price) {
+                if(state.holdingPart) {
+                    msgBox.innerText = "Você já está segurando uma peça ou item!";
+                    return;
+                }
+                state.money -= price;
+                document.getElementById('st-money').innerText = `Dinheiro: $${state.money}`;
+                state.holdingPart = name;
+                state.partsHealth[name] = 100;
+                holdingMesh.material.color.set(color);
+                holdingMesh.visible = true;
+                AudioSys.play(650, 'triangle', 0.2);
+                msgBox.innerText = `${name} comprado! Condição: 100%`;
+                closeShopMenu();
+            } else {
+                msgBox.innerText = "Dinheiro insuficiente!";
+            }
+        }
+        function startGameUI() {
+            AudioSys.init();
+            state.gameStarted = true;
+            state.isPaused = false;
+            document.getElementById('lobby-screen').style.display = 'none';
+            document.getElementById('pause-menu').style.display = 'none';
+            document.getElementById('hud').style.display = 'block';
+            document.getElementById('msg-box').style.display = 'block';
+            document.getElementById('crosshair').style.display = 'block';
+            document.getElementById('btn-options').style.display = 'block';
+        }
+        document.getElementById('btn-play').addEventListener('click', () => { startGameUI(); });
+        document.getElementById('btn-load-game').addEventListener('click', () => { if(loadGame()) startGameUI(); });
+        let joyActive = false, joyTouchId = null, joyCenter = { x: 0, y: 0 }, joyVec = { x: 0, y: 0 };
+        const joyZone = document.getElementById('joy-zone'), joyKnob = document.getElementById('joy-knob');
+        joyZone.addEventListener('touchstart', (e) => {
+            AudioSys.init();
+            for(let t of e.changedTouches) {
+                if(t.clientX < window.innerWidth / 2 && joyTouchId === null) {
+                    joyTouchId = t.identifier; joyActive = true;
+                    const r = joyZone.getBoundingClientRect();
+                    joyCenter = { x: r.left + r.width/2, y: r.top + r.height/2 };
+                    updateJoy(t);
+                }
+            }
+        }, { passive: false });
+        window.addEventListener('touchmove', (e) => {
+            if(!joyActive) return;
+            for(let t of e.changedTouches) { if(t.identifier === joyTouchId) updateJoy(t); }
+        }, { passive: false });
+        window.addEventListener('touchend', (e) => {
+            for(let t of e.changedTouches) {
+                if(t.identifier === joyTouchId) { joyActive = false; joyTouchId = null; joyVec = { x: 0, y: 0 }; joyKnob.style.left = '40px'; joyKnob.style.top = '40px'; }
+            }
+        });
+        function updateJoy(touch) {
+            const dx = touch.clientX - joyCenter.x, dy = touch.clientY - joyCenter.y;
+            const dist = Math.min(Math.sqrt(dx*dx + dy*dy), 45), angle = Math.atan2(dy, dx);
+            joyKnob.style.left = `${40 + Math.cos(angle)*dist}px`;
+            joyKnob.style.top = `${40 + Math.sin(angle)*dist}px`;
+            joyVec = { x: dx / 45, y: -dy / 45 };
+        }
+        let lX = 0, lY = 0, camTouchId = null;
+        window.addEventListener('touchstart', (e) => {
+            if(!state.gameStarted || state.isPaused) return;
+            for(let t of e.changedTouches) {
+                if(t.clientX >= window.innerWidth / 2 && !t.target.closest('.btn-action') && !t.target.closest('#food-menu') && !t.target.closest('#shop-menu') && !t.target.closest('#gas-menu') && !t.target.closest('#gps-modal') && camTouchId === null) {
+                    camTouchId = t.identifier; lX = t.clientX; lY = t.clientY;
+                }
+            }
+        });
+        window.addEventListener('touchmove', (e) => {
+            if(!state.gameStarted || state.isPaused) return;
+            for(let t of e.changedTouches) {
+                if(t.identifier === camTouchId) {
+                    const dx = (t.clientX - lX), dy = (t.clientY - lY);
+                    lX = t.clientX; lY = t.clientY;
+                    if (!state.inCar) {
+                        state.yaw -= dx * 0.005; state.pitch += dy * 0.005;
+                        state.pitch = Math.max(-0.8, Math.min(0.8, state.pitch));
+                    } else {
+                        state.extCamYaw -= dx * 0.005; state.extCamPitch += dy * 0.005;
+                        state.extCamPitch = Math.max(-0.4, Math.min(0.6, state.extCamPitch));
+                    }
+                }
+            }
+        });
+        window.addEventListener('touchend', (e) => {
+            for(let t of e.changedTouches) { if(t.identifier === camTouchId) camTouchId = null; }
+        });
+        const btnCam = document.getElementById('btn-cam'), btnInteract = document.getElementById('btn-interact'), btnHood = document.getElementById('btn-hood'), btnToolboxCar = document.getElementById('btn-toolbox-car'), btnExtend = document.getElementById('btn-extend'), btnDrop = document.getElementById('btn-drop'), btnCrouch = document.getElementById('btn-crouch'), btnEnter = document.getElementById('btn-enter'), btnIgnition = document.getElementById('btn-ignition'), btnGearUp = document.getElementById('btn-gearup'), btnGearDown = document.getElementById('btn-geardown'), msgBox = document.getElementById('msg-box');
+        
+        btnCam.addEventListener('click', () => {
+            AudioSys.init();
+            state.thirdPerson = !state.thirdPerson;
+            btnCam.innerText = state.thirdPerson ? "🎥 Câmera: 2ª P" : "🎥 Câmera: 1ª P";
+            msgBox.innerText = state.thirdPerson ? "Câmera em 2ª Pessoa" : "Câmera em 1ª Pessoa";
+        });
+        btnCrouch.addEventListener('click', () => {
+            AudioSys.init();
+            state.isCrouched = !state.isCrouched;
+            btnCrouch.style.background = state.isCrouched ? '#22c55e' : '#0284c7';
+            msgBox.innerText = state.isCrouched ? "Você agachou." : "Você levantou.";
+        });
+        btnHood.addEventListener('click', () => {
+            AudioSys.init();
+            state.hoodOpen = !state.hoodOpen;
+            hood.rotation.x = state.hoodOpen ? -Math.PI / 3 : 0;
+            installedEnginePartsGroup.visible = state.hoodOpen && state.carAssembled;
+            btnHood.innerText = state.hoodOpen ? "🧢 Fechar Capô" : "🧢 Abrir Capô";
+            msgBox.innerText = state.hoodOpen ? "Capô aberto!" : "Capô fechado.";
+        });
+        btnToolboxCar.addEventListener('click', () => {
+            AudioSys.init();
+            const p = player.position;
+            const dCar = p.distanceTo(car.position);
+            if (dCar < 3.5) {
+                if (state.hasToolbox && !state.hasCarToolbox) {
+                    state.hasToolbox = false;
+                    playerToolbox.visible = false;
+                    state.hasCarToolbox = true;
+                    carToolbox.visible = true;
+                    AudioSys.play(600, 'triangle', 0.2);
+                    msgBox.innerText = "Maleta de ferramentas guardada no interior do Uno!";
+                } else if (!state.hasToolbox && state.hasCarToolbox) {
+                    if (state.hasCargo || state.holdingPart) {
+                        msgBox.innerText = "Sua mão está ocupada!";
+                        return;
+                    }
+                    state.hasCarToolbox = false;
+                    carToolbox.visible = false;
+                    state.hasToolbox = true;
+                    playerToolbox.visible = true;
+                    AudioSys.play(600, 'triangle', 0.2);
+                    msgBox.innerText = "Maleta retirada do interior do Uno!";
+                }
+            }
+        });
+        btnIgnition.addEventListener('click', () => {
+            AudioSys.init();
+            if(!state.carFixed || !state.carAssembled) { msgBox.innerText = "O motor não está montado ou parafusado!"; return; }
+            if(state.fuel <= 0) { msgBox.innerText = "O carro está sem gasolina!"; return; }
+            state.engineOn = !state.engineOn;
+            btnIgnition.style.background = state.engineOn ? '#22c55e' : '#16a34a';
+            btnIgnition.innerText = state.engineOn ? "🔑 Desligar Motor" : "🔑 Ligar Motor";
+            msgBox.innerText = state.engineOn ? "Motor ligado!" : "Motor desligado.";
+        });
+        btnGearUp.addEventListener('click', () => {
+            AudioSys.init();
+            if(state.gear < 5) state.gear++;
+            document.getElementById('st-gear').innerText = `Marcha: ${state.gear === -1 ? 'R' : (state.gear === 0 ? 'N' : state.gear)}`;
+            msgBox.innerText = `Marcha engatada: ${state.gear === -1 ? 'Ré' : (state.gear === 0 ? 'Neutro' : state.gear + 'ª')}`;
+        });
+        btnGearDown.addEventListener('click', () => {
+            AudioSys.init();
+            if(state.gear > -1) state.gear--;
+            document.getElementById('st-gear').innerText = `Marcha: ${state.gear === -1 ? 'R' : (state.gear === 0 ? 'N' : state.gear)}`;
+            msgBox.innerText = `Marcha engatada: ${state.gear === -1 ? 'Ré' : (state.gear === 0 ? 'Neutro' : state.gear + 'ª')}`;
+        });
+        btnEnter.addEventListener('click', () => {
+            AudioSys.init();
+            if(!state.carFixed || !state.carAssembled) { msgBox.innerText = "O Uno está desmontado! Instale as peças e parafuse primeiro."; return; }
+            state.inCar = !state.inCar;
+            playerBody.visible = !state.inCar;
+            playerCargo.visible = (state.hasCargo && !state.inCar);
+            playerFood.visible = (state.hasFood && !state.inCar);
+            holdingMesh.visible = (state.holdingPart !== null && !state.inCar);
+            playerToolbox.visible = (state.hasToolbox && !state.inCar);
+            carCargo.visible = state.hasCarCargo;
+            carToolbox.visible = state.hasCarToolbox;
+            carFood.visible = (state.hasFood && state.inCar);
+            btnEnter.innerText = state.inCar ? "🚶 Sair do Uno" : "🚗 Entrar no Uno";
+            btnIgnition.style.display = state.inCar ? 'block' : 'none';
+            btnGearUp.style.display = state.inCar ? 'block' : 'none';
+            btnGearDown.style.display = state.inCar ? 'block' : 'none';
+        });
+        let itemDepth = 0.4;
+        btnExtend.addEventListener('click', () => {
+            AudioSys.init();
+            if(state.hasCargo || state.hasFood || state.holdingPart || state.hasToolbox) {
+                itemDepth += 0.3;
+                if(itemDepth > 1.5) itemDepth = 0.4;
+                playerCargo.position.z = itemDepth;
+                playerFood.position.z = itemDepth;
+                holdingMesh.position.z = itemDepth;
+                playerToolbox.position.z = itemDepth;
+                AudioSys.play(500, 'sine', 0.1);
+                msgBox.innerText = `Item empurrado para frente!`;
+            } else {
+                msgBox.innerText = "Você não está segurando nada para ampliar!";
+            }
+        });
+        btnDrop.addEventListener('click', () => {
+            AudioSys.init();
+            const p = player.position;
+            if(state.hasToolbox) {
+                state.hasToolbox = false; playerToolbox.visible = false;
+                const dropPos = p.clone().add(new THREE.Vector3(0, 0.2, 1.0).applyAxisAngle(new THREE.Vector3(0,1,0), state.yaw));
+                toolboxMesh.position.copy(dropPos);
+                toolboxMesh.visible = true;
+                AudioSys.play(200, 'sawtooth', 0.2);
+                msgBox.innerText = "Maleta de ferramentas no chão!";
+            } else if(state.hasCargo) {
+                state.hasCargo = false; playerCargo.visible = false;
+                const dropPos = p.clone().add(new THREE.Vector3(0, 0.2, 1.0).applyAxisAngle(new THREE.Vector3(0,1,0), state.yaw));
+                droppedBox.position.copy(dropPos);
+                droppedBox.visible = true;
+                AudioSys.play(200, 'sawtooth', 0.2);
+                msgBox.innerText = "Caixa colocada no chão!";
+            } else if(state.holdingPart) {
+                let partName = state.holdingPart;
+                state.holdingPart = null; holdingMesh.visible = false;
+                if(partMeshes[partName]) {
+                    partMeshes[partName].position.copy(p).add(new THREE.Vector3(0, 0.2, 1.0));
+                }
+                AudioSys.play(200, 'sawtooth', 0.2);
+                msgBox.innerText = `${partName} colocado no chão! (${Math.round(state.partsHealth[partName])}%)`;
+            }
+        });
+        function buyFood(name, price) {
+            if(state.money >= price) {
+                state.money -= price; state.hasFood = true; state.foodType = name;
+                playerFood.visible = true;
+                document.getElementById('st-money').innerText = `Dinheiro: $${state.money}`;
+                AudioSys.play(600, 'triangle', 0.2);
+                msgBox.innerText = `${name} comprado!`;
+                closeFoodMenu();
+            } else {
+                msgBox.innerText = "Dinheiro insuficiente!";
+            }
+        }
+        function closeFoodMenu() { document.getElementById('food-menu').style.display = 'none'; }
+        btnInteract.addEventListener('click', () => {
+            AudioSys.init();
+            const p = player.position;
+            const dCar = p.distanceTo(car.position), dBench = p.distanceTo(new THREE.Vector3(-28.5, 0.8, 14)), dCargo = p.distanceTo(cargoBox.position), dShopCounter = p.distanceTo(shopCounter.position);
+            const dToolboxFloor = p.distanceTo(toolboxMesh.position);
+            const dDeliveryShelf = p.distanceTo(deliveryShelf.position), dFoodShelf = p.distanceTo(foodShelf.position);
+            const dGasPump = p.distanceTo(new THREE.Vector3(-600, 0.75, 400));
+            const dBed = p.distanceTo(new THREE.Vector3(-37, 0, 17));
+            const dDroppedBox = p.distanceTo(droppedBox.position);
+
+            if (state.hasCargo && dDeliveryShelf < 3.0) {
+                state.hasCargo = false;
+                playerCargo.visible = false;
+                shelfBox.visible = true;
+                state.money += 50;
+                document.getElementById('st-money').innerText = `Dinheiro: $${state.money}`;
+                AudioSys.play(700, 'square', 0.3);
+                msgBox.innerText = "Entrega realizada com sucesso! Ganhou $50!";
+                return;
+            } else if (dFoodShelf < 3.0) {
+                document.getElementById('food-menu').style.display = 'flex';
+                return;
+            } else if (dGasPump < 3.5) {
+                openGasMenu();
+                return;
+            } else if (state.hasCargo && dCar < 3.5 && !state.hasCarCargo) {
+                state.hasCargo = false;
+                playerCargo.visible = false;
+                state.hasCarCargo = true;
+                carCargo.visible = true;
+                AudioSys.play(600, 'triangle', 0.2);
+                msgBox.innerText = "Caixa colocada na caçamba do Uno!";
+                return;
+            } else if (!state.hasCargo && !state.holdingPart && !state.hasToolbox && state.hasCarCargo && dCar < 3.5) {
+                state.hasCarCargo = false;
+                carCargo.visible = false;
+                state.hasCargo = true;
+                playerCargo.visible = true;
+                AudioSys.play(600, 'triangle', 0.2);
+                msgBox.innerText = "Caixa retirada da caçamba!";
+                return;
+            } else if (droppedBox.visible && dDroppedBox < 2.5 && !state.hasCargo && !state.holdingPart && !state.hasToolbox) {
+                droppedBox.visible = false;
+                state.hasCargo = true;
+                playerCargo.visible = true;
+                AudioSys.play(580, 'square', 0.2);
+                msgBox.innerText = "Caixa pega do chão!";
+                return;
+            } else if (!droppedBox.visible && dCargo < 2.5 && !state.hasCargo && !state.holdingPart && !state.hasToolbox && !state.hasCarCargo) {
+                state.hasCargo = true;
+                playerCargo.visible = true;
+                AudioSys.play(580, 'square', 0.2);
+                msgBox.innerText = "Caixa pega!";
+                return;
+            }
+
+            for(let key in gates) {
+                let g = gates[key];
+                if(p.distanceTo(g.mesh.position) < 5) {
+                    g.open = !g.open; g.mesh.visible = !g.open;
+                    const index = colliders.indexOf(g.box);
+                    if(g.open && index > -1) colliders.splice(index, 1);
+                    else if(!g.open && index === -1) { g.box.setFromObject(g.mesh); colliders.push(g.box); }
+                    AudioSys.play(80, 'sawtooth', 0.3);
+                    msgBox.innerText = g.open ? "Porta aberta!" : "Porta fechada.";
+                    return;
+                }
+            }
+            let pickedPart = null;
+            for(let partName in partMeshes) {
+                if(p.distanceTo(partMeshes[partName].position) < 2.0 && !state.partsCollected[partName] && !state.holdingPart) {
+                    pickedPart = partName;
+                    break;
+                }
+            }
+            if(pickedPart && !state.holdingPart) {
+                state.holdingPart = pickedPart;
+                holdingMesh.material.color.set(partMeshes[pickedPart].material.color);
+                holdingMesh.visible = true;
+                partMeshes[pickedPart].position.set(0, -10, 0);
+                AudioSys.play(580, 'square', 0.2);
+                msgBox.innerText = `${pickedPart} pego na mão! Condição: ${Math.round(state.partsHealth[pickedPart])}%`;
+            } else if(dCar < 3 && state.holdingPart && (!state.carAssembled || state.hoodOpen)) {
+                let installedCount = 0;
+                for(let k in state.partsCollected) { if(state.partsCollected[k]) installedCount++; }
+                if(installedCount >= 15) {
+                    msgBox.innerText = "O motor já está com todas as 15 peças instaladas!";
+                    return;
+                }
+
+                let partName = state.holdingPart;
+                state.partsCollected[partName] = true;
+                state.holdingPart = null;
+                holdingMesh.visible = false;
+                AudioSys.play(650, 'triangle', 0.25);
+                
+                installedCount = 0;
+                for(let k in state.partsCollected) { if(state.partsCollected[k]) installedCount++; }
+                if(installedCount === 15 && !state.carAssembled) {
+                    msgBox.innerText = `Todas as 15 peças no lugar! **Feche o capô para parafusar** com a maleta.`;
+                } else {
+                    msgBox.innerText = `${partName} encaixado! (${installedCount}/15 peças)`;
+                }
+            } else if(dCar < 3 && state.hoodOpen && state.hasToolbox && state.carAssembled) {
+                state.carAssembled = false;
+                state.carFixed = false;
+                installedEnginePartsGroup.visible = false;
+                document.getElementById('st-status').innerHTML = 'Status: <b style="color:#ef4444;">Desmontado</b>';
+                for(let partName in state.partsCollected) {
+                    state.partsCollected[partName] = false;
+                    if(partMeshes[partName]) {
+                        partMeshes[partName].position.copy(car.position).add(new THREE.Vector3((Math.random()-0.5)*2, 0.2, 2.5));
+                    }
+                }
+                AudioSys.play(300, 'sawtooth', 0.4);
+                msgBox.innerText = "Todas as 15 peças do motor foram desparafusadas juntas e jogadas no chão!";
+                return;
+            } else if(dCar < 3 && state.hoodOpen && !state.hasToolbox) {
+                msgBox.innerText = "Você precisa estar com a Maleta de Ferramentas na mão e o capô aberto para desparafusar!";
+            } else if(((dBench < 1.5 && !state.hasToolbox) || (dToolboxFloor < 1.5 && toolboxMesh.visible)) && !state.hasToolbox && !state.holdingPart && !state.hasCarToolbox) {
+                state.hasToolbox = true;
+                toolboxMesh.visible = false;
+                playerToolbox.visible = true;
+                AudioSys.play(580, 'square', 0.2);
+                msgBox.innerText = "Maleta de ferramentas pega!";
+            } else if(dCar < 3 && state.hasToolbox && !state.carAssembled) {
+                let allPlaced = true;
+                for(let k in state.partsCollected) { if(!state.partsCollected[k]) allPlaced = false; }
+                if(allPlaced) {
+                    if(state.hoodOpen) {
+                        msgBox.innerText = "Por favor, **feche o capô** para poder parafusar o motor com segurança!";
+                        return;
+                    }
+                    state.carAssembled = true;
+                    state.carFixed = true;
+                    document.getElementById('st-status').innerHTML = 'Status: <b style="color:#22c55e;">Montado / Pronto</b>';
+                    AudioSys.play(700, 'square', 0.4);
+                    msgBox.innerText = "Parafusado com sucesso! A maleta continua na sua mão.";
+                } else {
+                    msgBox.innerText = "Você precisa encaixar TODAS as 15 peças no motor antes de parafusar!";
+                }
+            } else if(dBed < 2.5) {
+                state.energy = 100; state.timeMinutes += 360;
+                AudioSys.play(300, 'sine', 0.5);
+                msgBox.innerText = "Você dormiu bem e recuperou totalmente a energia!";
+            } else if(dShopCounter < 3) {
+                openShopMenu();
+            } else if(state.hasFood) {
+                const f = state.foodType;
+                state.hasFood = false; state.foodType = ''; playerFood.visible = false;
+                if(f === 'Água' || f === 'Refrigerante') {
+                    state.thirst = Math.min(100, state.thirst + 40);
+                    msgBox.innerText = `Você bebeu ${f}!`;
+                } else {
+                    state.hunger = Math.min(100, state.hunger + 40);
+                    msgBox.innerText = `Você comeu ${f}!`;
+                }
+                AudioSys.play(550, 'sine', 0.2);
+            }
+        });
+        const clock = new THREE.Clock();
+        let frameCount = 0, lastFpsUpdate = 0;
+        const wearFactors = {};
+        enginePartsList.forEach(p => {
+            wearFactors[p.name] = 0.3 + Math.random() * 1.4;
+        });
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+            frameCount++;
+            const now = clock.getElapsedTime();
+            if (now - lastFpsUpdate >= 0.5) {
+                let fps = Math.round(frameCount / (now - lastFpsUpdate));
+                if(state.gameStarted && !state.isPaused) document.getElementById('st-fps').innerText = `FPS: ${fps}`;
+                frameCount = 0;
+                lastFpsUpdate = now;
+            }
+            if (!state.gameStarted || state.isPaused) { renderer.render(scene, camera); return; }
+            state.timeMinutes += delta * 0.8;
+            if(state.timeMinutes >= 1440) state.timeMinutes = 0;
+            let hours = Math.floor(state.timeMinutes / 60), mins = Math.floor(state.timeMinutes % 60);
+            document.getElementById('st-time').innerText = `Horário: ${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}`;
+            let dayProgress = state.timeMinutes / 1440;
+            let sunAngle = dayProgress * Math.PI * 2;
+            sun.position.set(Math.cos(sunAngle) * 300, Math.sin(sunAngle) * 300, 100);
+            if (hours >= 18 || hours < 6) {
+                scene.background.setHex(0x050814);
+                scene.fog.color.setHex(0x050814);
+                ambientLight.intensity = 0.2;
+                sun.intensity = 0.1;
+            } else {
+                scene.background.setHex(0x7dd3fc);
+                scene.fog.color.setHex(0x7dd3fc);
+                ambientLight.intensity = 0.8;
+                sun.intensity = 0.8;
+            }
+            if (state.hunger > 0) state.hunger -= delta * 0.05;
+            if (state.thirst > 0) state.thirst -= delta * 0.07;
+            if (state.energy > 0) state.energy -= delta * 0.04;
+            
+            if (state.hunger <= 0 || state.thirst <= 0 || state.energy <= 0) {
+                alert("Você morreu por exaustão/fome/sede! Retornando ao lobby.");
+                returnToLobby();
+                state.hunger = 100; state.thirst = 100; state.energy = 100; state.money = Math.max(0, state.money - 20);
+                return;
+            }
+
+            document.getElementById('fill-hunger').style.width = `${Math.max(0, state.hunger)}%`;
+            document.getElementById('fill-thirst').style.width = `${Math.max(0, state.thirst)}%`;
+            document.getElementById('fill-energy').style.width = `${Math.max(0, state.energy)}%`;
+            document.getElementById('fill-fuel').style.width = `${Math.max(0, state.fuel)}%`;
+
+            const p = player.position;
+            if(!state.inCar) {
+                if(Math.abs(joyVec.y) > 0.1 || Math.abs(joyVec.x) > 0.1) {
+                    const speed = state.isCrouched ? 2.5 : 5.0;
+                    const forward = new THREE.Vector3(-Math.sin(state.yaw), 0, -Math.cos(state.yaw));
+                    const right = new THREE.Vector3(Math.cos(state.yaw), 0, -Math.sin(state.yaw));
+                    const moveDir = new THREE.Vector3().addScaledVector(forward, joyVec.y).addScaledVector(right, joyVec.x).normalize();
+                    const nextPos = p.clone().addScaledVector(moveDir, speed * delta);
+                    let collided = false;
+                    const pBox = new THREE.Box3().setFromCenterAndSize(nextPos, new THREE.Vector3(0.6, state.isCrouched ? 1.0 : 1.6, 0.6));
+                    for(let box of colliders) { if(box.intersectsBox(pBox)) { collided = true; break; } }
+                    if(!collided) p.copy(nextPos);
+                    player.rotation.y = Math.atan2(moveDir.x, moveDir.z);
+                }
+                AudioSys.updateEngine(0, false);
+            } else {
+                let targetSpeed = 0;
+                
+                if (state.fuel <= 0 && state.engineOn) {
+                    state.engineOn = false;
+                    btnIgnition.style.background = '#16a34a';
+                    btnIgnition.innerText = "🔑 Ligar Motor";
+                    msgBox.innerText = "O combustível acabou e o motor desligou!";
+                }
+
+                let canDrive = state.carFixed && state.carAssembled && state.engineOn && state.fuel > 0;
+                
+                if (state.carFixed && state.carAssembled && state.engineOn && Math.abs(joyVec.y) > 0.1) {
+                    let baseWearRate = delta / (90 * 1440 * 60);
+                    let brokenPartName = null;
+                    for(let k in state.partsHealth) {
+                        if(state.partsCollected[k]) {
+                            let itemFactor = wearFactors[k] || 1.0;
+                            state.partsHealth[k] = Math.max(0, state.partsHealth[k] - (baseWearRate * 100 * itemFactor));
+                            if(state.partsHealth[k] <= 0) brokenPartName = k;
+                        }
+                    }
+                    if(brokenPartName) {
+                        state.carFixed = false;
+                        state.engineOn = false;
+                        btnIgnition.style.background = '#16a34a';
+                        btnIgnition.innerText = "🔑 Ligar Motor";
+                        document.getElementById('st-status').innerHTML = 'Status: <b style="color:#ef4444;">Motor Quebrado</b>';
+                        canDrive = false;
+                        msgBox.innerText = `A peça "${brokenPartName}" quebrou por desgaste! Compre outra no Auto Peças.`;
+                    }
+                }
+
+                if (canDrive && state.gear !== 0) {
+                    let maxGearSpeed = 30; 
+                    if (state.gear === 1) maxGearSpeed = 30;
+                    else if (state.gear === 2) maxGearSpeed = 50;
+                    else if (state.gear === 3) maxGearSpeed = 70;
+                    else if (state.gear === 4) maxGearSpeed = 80;
+                    else if (state.gear === 5) maxGearSpeed = 100;
+                    else if (state.gear === -1) maxGearSpeed = 25;
+
+                    let targetKmh = Math.abs(joyVec.y) * maxGearSpeed;
+                    targetSpeed = (targetKmh / 40) * (state.gear === -1 ? -1 : 1);
+                    state.fuel = Math.max(0, state.fuel - Math.abs(targetSpeed) * delta * 0.005);
+                }
+                state.carSpeed += (targetSpeed - state.carSpeed) * 4.0 * delta;
+                
+                let currentMaxKmh = 0;
+                if (state.gear === 1) currentMaxKmh = 30;
+                else if (state.gear === 2) currentMaxKmh = 50;
+                else if (state.gear === 3) currentMaxKmh = 70;
+                else if (state.gear === 4) currentMaxKmh = 80;
+                else if (state.gear === 5) currentMaxKmh = 100;
+                else if (state.gear === -1) currentMaxKmh = 25;
+
+                let calculatedKmh = Math.min(currentMaxKmh, Math.round(Math.abs(state.carSpeed) * 40));
+                if (Math.abs(state.carSpeed) > 0.05 && canDrive) {
+                    const moveStep = state.carSpeed * delta;
+                    const nextCarPos = car.position.clone().addScaledVector(new THREE.Vector3(0, 0, 1).applyQuaternion(car.quaternion), moveStep);
+                    let carCollided = false;
+                    const cBox = new THREE.Box3().setFromCenterAndSize(nextCarPos, new THREE.Vector3(1.9, 1.4, 3.8));
+                    for(let box of colliders) { if(box.intersectsBox(cBox)) { carCollided = true; break; } }
+                    if(!carCollided) car.position.copy(nextCarPos); else state.carSpeed = 0;
+                    if (Math.abs(joyVec.x) > 0.1) car.rotation.y -= joyVec.x * Math.sign(state.carSpeed) * 1.5 * delta;
+                } else {
+                    state.carSpeed = 0;
+                    calculatedKmh = 0;
+                }
+                player.position.copy(car.position);
+                AudioSys.updateEngine(state.carSpeed, true);
+                document.getElementById('st-speed').innerText = `Velocidade: ${calculatedKmh} km/h`;
+            }
+            const mapScale = 0.035;
+            document.getElementById('gps-player').style.left = `${200 + p.x * mapScale}px`;
+            document.getElementById('gps-player').style.top = `${200 - p.z * mapScale}px`;
+            document.getElementById('gps-car').style.left = `${200 + car.position.x * mapScale}px`;
+            document.getElementById('gps-car').style.top = `${200 - car.position.z * mapScale}px`;
+            
+            let nearPart = false;
+            for(let partName in partMeshes) {
+                if(p.distanceTo(partMeshes[partName].position) < 2.5) { nearPart = true; break; }
+            }
+            let nearGate = false;
+            for(let key in gates) { if(p.distanceTo(gates[key].mesh.position) < 5) { nearGate = true; break; } }
+            const dCar = p.distanceTo(car.position), dShopCounter = p.distanceTo(shopCounter.position);
+            const dGasPump = p.distanceTo(new THREE.Vector3(-600, 0.75, 400));
+            const dCargo = p.distanceTo(cargoBox.position);
+            const dDroppedBox = p.distanceTo(droppedBox.position);
+            const dDeliveryShelf = p.distanceTo(deliveryShelf.position);
+            const dFoodShelf = p.distanceTo(foodShelf.position);
+            
+            document.getElementById('btn-options').style.display = 'block';
+
+            if (dCar < 3.5 && (state.hasToolbox || state.hasCarToolbox)) {
+                btnToolboxCar.style.display = 'block';
+                btnToolboxCar.innerText = state.hasCarToolbox ? "🧰 Pegar Maleta" : "🧰 Guardar Maleta";
+            } else {
+                btnToolboxCar.style.display = 'none';
+            }
+
+            document.getElementById('btn-interact').style.display = (nearGate || nearPart || state.hasToolbox || dShopCounter < 3 || dCar < 3.5 || dGasPump < 3.5 || state.hasFood || dCargo < 3 || dDroppedBox < 3 || dDeliveryShelf < 3.0 || dFoodShelf < 3.0) ? 'block' : 'none';
+            document.getElementById('btn-gps').style.display = 'block';
+            document.getElementById('btn-hood').style.display = (dCar < 3 || state.inCar) ? 'block' : 'none';
+            document.getElementById('btn-extend').style.display = (state.hasCargo || state.hasFood || state.holdingPart || state.hasToolbox) ? 'block' : 'none';
+            document.getElementById('btn-drop').style.display = (state.hasCargo || state.hasCarCargo || state.hasFood || state.holdingPart || state.hasToolbox) ? 'block' : 'none';
+            document.getElementById('btn-crouch').style.display = 'block';
+            document.getElementById('btn-enter').style.display = (dCar < 3 || state.inCar) ? 'block' : 'none';
+            document.getElementById('joy-zone').style.display = 'block';
+            document.getElementById('btn-enter').innerText = state.inCar ? "🚶 Sair do Uno" : "🚗 Entrar no Uno";
+            
+            btnIgnition.style.display = state.inCar ? 'block' : 'none';
+            btnGearUp.style.display = state.inCar ? 'block' : 'none';
+            btnGearDown.style.display = state.inCar ? 'block' : 'none';
+
+            const camH = state.isCrouched ? 0.9 : 1.5;
+            if(!state.inCar) {
+                playerBody.visible = true;
+                if(state.thirdPerson) {
+                    const offset = new THREE.Vector3(0, camH + 1.2, -4.5).applyAxisAngle(new THREE.Vector3(1, 0, 0), state.pitch).applyAxisAngle(new THREE.Vector3(0, 1, 0), state.yaw);
+                    camera.position.set(p.x + offset.x, p.y + offset.y, p.z + offset.z);
+                    camera.lookAt(p.x, p.y + camH, p.z);
+                } else {
+                    camera.position.set(p.x, p.y + camH, p.z);
+                    camera.lookAt(new THREE.Vector3(p.x - Math.sin(state.yaw) * Math.cos(state.pitch), p.y + camH + state.pitch, p.z - Math.cos(state.yaw) * Math.cos(state.pitch)));
+                }
+            } else {
+                const offset = new THREE.Vector3(0, 2.2, -5.5).applyAxisAngle(new THREE.Vector3(0, 1, 0), state.extCamYaw);
+                camera.position.copy(car.position).add(offset.applyQuaternion(car.quaternion));
+                camera.lookAt(car.position.clone().add(new THREE.Vector3(0, 0.8, 0).applyQuaternion(car.quaternion)));
+            }
+            renderer.render(scene, camera);
+        }
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        animate();
+    </script>
+</body>
+</html>
+                                                                    
